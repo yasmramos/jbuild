@@ -1,0 +1,477 @@
+# JBuild Multi-Module Project Configuration - DSL Simple
+# Configuración completa para JBuild System Multi-Módulo
+
+# Información del proyecto principal
+project {
+    id: "com.jbuild:jbuild-parent:1.1.0"
+    name: "JBuild Multi-Module System"
+    description: "Sistema de construcción Java profesional con arquitectura multi-módulo"
+    type: "parent"
+    version: "1.1.0"
+}
+
+# Módulos principales en orden de dependencias
+# Orden de compilación: model -> core -> optimizer/system -> examples
+modules [
+    # Módulos base (sin dependencias)
+    "jbuild-model",      # 1. Modelo de datos - Sin dependencias
+    "jbuild-core",       # 2. Núcleo del sistema - Depende de model
+    "jbuild-optimizer",  # 3. Optimizador ASM - Sin dependencias directas de otros módulos
+    
+    # Módulos principales (dependen de core)
+    "jbuild-system",     # 4. Sistema principal - Depende de core
+    "jbuild-examples",   # 5. Ejemplos - Depende de system
+    
+    # Módulos de extensión (opcionales)
+    "plugins/jbuild-plugin-api",      # API de plugins
+    "plugins/jbuild-plugin-core",     # Núcleo de plugins
+    "plugins/jbuild-plugin-system",   # Plugins del sistema
+    "plugins/jbuild-plugin-examples", # Plugins de ejemplos
+    
+    # Módulos de migración
+    "migration/jbuild-migrate",       # Herramientas de migración
+    
+    # Módulos de releases (para distribución)
+    "releases/jbuild-release",        # Release principal
+    "releases/jbuild-system-release", # Release del sistema
+    "releases/jbuild-type-safe-release-1.1.0" # Release type-safe
+]
+
+# Orden de compilación explícito para optimización paralela
+build-order {
+    # Fase 1: Módulos base (sin dependencias) - Compilación paralela
+    phase-1: [
+        "jbuild-model",
+        "jbuild-optimizer"
+    ]
+    
+    # Fase 2: Núcleo del sistema - Depende de fase 1
+    phase-2: [
+        "jbuild-core"
+    ]
+    
+    # Fase 3: Sistema principal - Depende de fase 2
+    phase-3: [
+        "jbuild-system",
+        "plugins/jbuild-plugin-api",
+        "plugins/jbuild-plugin-core"
+    ]
+    
+    # Fase 4: Extensiones y ejemplos - Depende de fase 3
+    phase-4: [
+        "plugins/jbuild-plugin-system",
+        "plugins/jbuild-plugin-examples", 
+        "migration/jbuild-migrate",
+        "jbuild-examples"
+    ]
+    
+    # Fase 5: Releases - Depende de todo lo anterior
+    phase-5: [
+        "releases/jbuild-release",
+        "releases/jbuild-system-release",
+        "releases/jbuild-type-safe-release-1.1.0"
+    ]
+}
+
+# Configuración Java del proyecto padre
+java {
+    version: 11
+    debug: true
+    encoding: "UTF-8"
+    source: "11"
+    target: "11"
+}
+
+# Configuración de paths del proyecto padre
+paths {
+    source: "src/main/java"
+    test: "src/test/java"
+    output: "target/classes"
+    test-output: "target/test-classes"
+    resources: ["src/main/resources"]
+    test-resources: ["src/test/resources"]
+    
+    # Paths para builds distribuidos
+    release-output: "releases/jbuild-release-output"
+    release-build: "releases/jbuild-release-build"
+}
+
+# Configuración de build del proyecto padre
+build {
+    # Configuración de compilación paralela
+    parallel: true
+    thread-count: 4
+    
+    # Configuración de packaging
+    packaging {
+        output-dir: "releases/jbuild-release-output"
+        build-dir: "releases/jbuild-release-build"
+        
+        # Incluir módulos principales en el package principal
+        include-modules: ["jbuild-core", "jbuild-system", "jbuild-model"]
+    }
+    
+    # Configuración de JARs
+    jar {
+        executable: false
+        compressed: true
+        manifest: {
+            main-class: null
+            version: "1.1.0"
+        }
+    }
+    
+    # Configuración de distribución
+    distribution {
+        include-docs: true
+        include-sources: false
+        include-tests: false
+        
+        # Scripts de distribución
+        scripts: {
+            windows: "jbuild.bat"
+            linux: "jbuild.sh"
+        }
+    }
+}
+
+# Configuración de performance avanzada
+performance {
+    # Estrategia de compilación paralela
+    parallel-strategy: "phase-based"
+    
+    # Límites de recursos
+    max-memory: "2G"
+    max-threads: 8
+    
+    # Compilación incremental habilitada
+    incremental-compilation: true
+    
+    # Cache distribuido para builds grandes
+    cache: {
+        enabled: true
+        strategy: "distributed"
+        url: "http://localhost:8888"
+        ttl: "24h"
+    }
+    
+    # Optimizaciones de JVM
+    jvm-options: [
+        "-XX:+UseG1GC",
+        "-XX:MaxGCPauseMillis=200",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:+UseZGC"
+    ]
+}
+
+# Configuración de telemetría y métricas
+telemetry {
+    build-metrics: true
+    performance-tracking: true
+    dependency-analysis: true
+    
+    reporting: {
+        format: ["html", "json", "markdown"]
+        output-dir: "target/metrics"
+        
+        # Métricas específicas
+        metrics: [
+            "compilation-time",
+            "memory-usage",
+            "dependency-graph",
+            "test-coverage"
+        ]
+    }
+}
+
+# Configuración de dependencias del proyecto padre
+dependencies {
+    # Dependencias del sistema
+    system: [
+        {
+            group: "org.ow2.asm"
+            artifact: "asm"
+            version: "9.2"
+            scope: "compile"
+        }
+    ]
+    
+    # Dependencias de prueba
+    test: [
+        {
+            group: "junit"
+            artifact: "junit"
+            version: "4.13.2"
+            scope: "test"
+        }
+    ]
+}
+
+# Configuración de módulos individuales (ejemplo)
+module-configurations {
+    "jbuild-core" = {
+        description: "Núcleo del sistema JBuild"
+        java: { version: 11 }
+        dependencies: ["jbuild-model"]
+    }
+    
+    "jbuild-system" = {
+        description: "Sistema principal de JBuild"
+        java: { version: 11 }
+        dependencies: ["jbuild-core", "jbuild-model"]
+    }
+    
+    "jbuild-examples" = {
+        description: "Ejemplos y demostraciones de JBuild"
+        java: { version: 11 }
+        dependencies: ["jbuild-system", "jbuild-core", "jbuild-model"]
+    }
+}
+
+# Repositorios
+repositories [
+    {
+        id: "central"
+        url: "https://repo1.maven.org/maven2"
+        type: "remote"
+        enabled: true
+    },
+    {
+        id: "local"
+        url: "file://~/.jbuild/repository"
+        type: "local"
+        enabled: true
+    },
+    {
+        id: "snapshots"
+        url: "https://s01.oss.sonatype.org/content/repositories/snapshots"
+        type: "remote"
+        enabled: false
+    }
+]
+
+# Configuración de plugins del build
+build-plugins {
+    compiler: {
+        enabled: true
+        debug-info: true
+        optimize: true
+    }
+    
+    jar: {
+        enabled: true
+        compress: true
+    }
+    
+    assembly: {
+        enabled: true
+        include-dependencies: true
+    }
+}
+
+# Configuración de release
+release {
+    version: "1.1.0"
+    tag-prefix: "v"
+    
+    # Archivos a incluir en el release
+    include: [
+        "jbuild-core/",
+        "jbuild-system/", 
+        "jbuild-model/",
+        "jbuild-examples/",
+        "jbuild-optimizer/",
+        "*.sh",
+        "*.bat",
+        "*.md"
+    ]
+    
+    # Archivos a excluir del release
+    exclude: [
+        "target/",
+        ".git/",
+        "*.log",
+        ".cache/"
+    ]
+}
+
+# Configuración de calidad de código
+quality {
+    # Checkstyle para estilo de código
+    checkstyle: {
+        enabled: true
+        config: "google_checks.xml"
+        fail-on-error: true
+        max-issues: 0
+    }
+    
+    # SpotBugs para detección de bugs
+    spotbugs: {
+        enabled: true 
+        effort: "max"
+        level: "low"
+        fail-on-error: true
+    }
+    
+    # JaCoCo para cobertura de código
+    jacoco: {
+        enabled: true
+        threshold: 0.80  # 80% coverage mínimo
+        include: ["com.jbuild.**"]
+        exclude: ["**/test/**"]
+    }
+    
+    # PMD para análisis de código
+    pmd: {
+        enabled: true
+        rulesets: [
+            "category/java/bestpractices.xml",
+            "category/java/codestyle.xml",
+            "category/java/design.xml"
+        ]
+        fail-on-error: false
+        max-issues: 10
+    }
+    
+    # SonarQube para análisis continuo
+    sonar: {
+        enabled: true
+        project-key: "jbuild-multi-module"
+        project-name: "JBuild Multi-Module System"
+        server-url: "http://localhost:9000"
+        quality-gate: {
+            enabled: true
+            thresholds: {
+                coverage: 80
+                duplicated-lines: 3
+                maintainability-rating: "A"
+            }
+        }
+    }
+}
+
+# Configuración de CI/CD integrada
+ci-cd {
+    # Triggers de construcción
+    triggers: ["push", "pull_request", "tag"]
+    
+    # Matrix de pruebas multiplataforma
+    matrix: {
+        java: ["11", "17", "21"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    }
+    
+    # Pipeline de stages
+    stages: [
+        {
+            name: "test-core"
+            modules: ["jbuild-model", "jbuild-core", "jbuild-optimizer"]
+            command: "jbuild test --parallel"
+            timeout: "10m"
+        },
+        {
+            name: "test-system"
+            modules: ["jbuild-system", "plugins/jbuild-plugin-*"]
+            command: "jbuild test --parallel"
+            depends-on: "test-core"
+            timeout: "15m"
+        },
+        {
+            name: "integration-test"
+            modules: ["jbuild-examples", "migration/jbuild-migrate"]
+            command: "jbuild integration-test"
+            depends-on: "test-system"
+            timeout: "20m"
+        },
+        {
+            name: "quality-gate"
+            command: "jbuild quality-check --strict"
+            depends-on: "integration-test"
+            timeout: "5m"
+        },
+        {
+            name: "release"
+            command: "jbuild release --optimize --report-detailed"
+            depends-on: "quality-gate"
+            only-on: ["main", "develop"]
+            timeout: "10m"
+        }
+    ]
+    
+    # Configuración de artifacts
+    artifacts: {
+        include: [
+            "releases/*.jar",
+            "releases/*.zip", 
+            "releases/*.tar.gz",
+            "target/metrics/**",
+            "target/quality-reports/**"
+        ]
+        retention-days: 30
+        upload-on-success: true
+    }
+    
+    # Notificaciones
+    notifications: {
+        email: {
+            enabled: true
+            recipients: ["dev-team@company.com"]
+            triggers: ["failure", "success", "unstable"]
+        }
+        slack: {
+            enabled: false
+            channel: "#ci-cd"
+            webhook-url: "${SLACK_WEBHOOK_URL}"
+        }
+    }
+}
+
+# Configuración de perfiles (profiles)
+profiles {
+    # Perfil de desarrollo
+    development {
+        description: "Configuración para desarrollo local"
+        activation: { 
+            active-by-default: true
+            os: { name: "*" }
+        }
+        
+        properties: {
+            "jbuild.debug": "true"
+            "jbuild.verbose": "true"
+            "jbuild.tests": "unit"
+            "jbuild.optimization": "none"
+        }
+    }
+    
+    # Perfil de testing
+    testing {
+        description: "Configuración para pruebas automatizadas"
+        activation: { 
+            property: { name: "env", value: "test" }
+        }
+        
+        properties: {
+            "jbuild.debug": "false"
+            "jbuild.verbose": "false"
+            "jbuild.tests": "all"
+            "jbuild.coverage": "true"
+        }
+    }
+    
+    # Perfil de producción
+    production {
+        description: "Configuración optimizada para producción"
+        activation: { 
+            property: { name: "env", value: "prod" }
+        }
+        
+        properties: {
+            "jbuild.debug": "false"
+            "jbuild.verbose": "false"
+            "jbuild.tests": "integration"
+            "jbuild.optimization": "maximum"
+            "jbuild.signing": "true"
+        }
+    }
+}
